@@ -1,5 +1,7 @@
 #pragma once
 
+#include "cutlass/detail/layout.hpp"
+
 template <typename T> struct TransposeParams {
   T *input;
   T *output;
@@ -10,6 +12,16 @@ template <typename T> struct TransposeParams {
   TransposeParams(T *input_, T *output_, int M_, int N_)
       : input(input_), output(output_), M(M_), N(N_) {}
 };
+
+template <class Tensor> void print_tensor(Tensor const tensor){
+  printf("\n");
+  for (size_t i = 0; i < cute::size<0>(tensor); ++i) {
+    for (size_t j = 0; j < cute::size<1>(tensor); ++j) {
+      std::cout<<tensor(i,j)<<" "<<std::endl;
+    }
+    std::cout<<std::endl;
+  }
+}
 
 //template <typename T> int benchmark(void (*transpose)(int M, int N, T* input, T* output), int M, int N, int iterations=10, bool verify=true) {
 template <typename T, bool isTranspose = true> int benchmark(void (*transpose)(TransposeParams<T> params), int M, int N, int iterations=10, bool verify=true) {
