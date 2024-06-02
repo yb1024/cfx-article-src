@@ -35,6 +35,12 @@ __global__ void gemm_simple(T *Cptr, const T *Aptr, const T *Bptr, int m, int n,
   auto tArA = thr_mma.partition_fragment_A(gA(_, _, 0));  // (MMA, MMA_M, MMA_K)
   auto tBrB = thr_mma.partition_fragment_B(gB(_, _, 0));  // (MMA, MMA_N, MMA_K)
   auto tCrC = thr_mma.partition_fragment_C(gC(_, _));     // (MMA, MMA_M, MMA_N)
+
+  if(thread0() && ix==0 && iy==0){
+    print("tArA: ");print(tArA);print("\n");
+    print("tBrB: ");print(tBrB);print("\n");
+    print("tCrC: ");print(tCrC);print("\n");
+  }
  
   clear(tCrC);
   

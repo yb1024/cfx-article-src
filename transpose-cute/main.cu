@@ -4,6 +4,7 @@
 #include "include/transpose_naive.h"
 #include "include/transpose_smem.h"
 #include "include/transpose_tmastore_vectorized.h"
+#include "include/transpose_tmastore_vectorized_raw.h"
 #include "include/util.h"
 
 int main(int argc, char const **argv) {
@@ -19,20 +20,23 @@ int main(int argc, char const **argv) {
 
   std::cout << "Matrix size: " << M << " x " << N << std::endl;
 
-  printf("Baseline copy; No transpose\n");
-  benchmark<Element, false>(copy_baseline<Element>, M, N);
+  // printf("Baseline copy; No transpose\n");
+  // benchmark<Element, false>(copy_baseline<Element>, M, N);
   
-  printf("\nNaive (no tma, no smem, not vectorized):\n");
-  benchmark<Element>(transpose_naive<Element>, M, N);
+  // printf("\nNaive (no tma, no smem, not vectorized):\n");
+  // benchmark<Element>(transpose_naive<Element>, M, N);
 
-  printf("\nSMEM transpose (no tma, smem passthrough, not vectorized, not swizzled):\n");
-  benchmark<Element>(transpose_smem<Element, false>, M, N);
+  // printf("\nSMEM transpose (no tma, smem passthrough, not vectorized, not swizzled):\n");
+  // benchmark<Element>(transpose_smem<Element, false>, M, N);
 
-  printf("\nSwizzle (no tma, smem passthrough, not vectorized, swizzled):\n");
-  benchmark<Element>(transpose_smem<Element, true>, M, N);
+  // printf("\nSwizzle (no tma, smem passthrough, not vectorized, swizzled):\n");
+  // benchmark<Element>(transpose_smem<Element, true>, M, N);
+
+  // printf("\nTMA (tma, smem passthrough, vectorized, swizzled):\n");
+  // benchmark<Element>(transpose_tma<Element>, M, N);
 
   printf("\nTMA (tma, smem passthrough, vectorized, swizzled):\n");
-  benchmark<Element>(transpose_tma<Element>, M, N);
+  benchmark<Element>(transpose_tma_raw<Element>, M, N);
 
   return 0;
 }
