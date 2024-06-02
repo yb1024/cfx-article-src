@@ -58,7 +58,7 @@ __global__ static void __launch_bounds__(256)
   auto sD_thr_val = sD_tile.compose(thr_val2tile_Ds, _);
   auto tDsD = sD_thr_val(make_coord(threadIdx.x, _), _);
 
-  Tensor tSrS = make_fragment_like(tSgS);
+  Tensor tSrS = make_fragment_like(tSgS(_, 0));
 
   // Copy from GMEM to RMEM to SMEM
   for(int i=0; i<size<1>(tSgS); i++) {
@@ -71,24 +71,23 @@ __global__ static void __launch_bounds__(256)
   __syncthreads();
 
   // Issue the TMA store.
-  Tensor mD = tmaD.get_tma_tensor(shape(gmemLayoutD));
-  auto mD_tile_to_smem_shape = zipped_divide(mD, shape(smemLayoutD));
+  Tensor gD = tmaD.get_tma_tensor(shape(gmemLayoutD));
+  auto gD_tile_to_smem_shape = zipped_divide(gD, shape(smemLayoutD));
+  auto gD_tile_to_smem_shape_per_warp = gD_tile_to_smem_shape(_, make_coord(blockIdx.y, blockIdx.x));
+  auto sD2 = group_modes<0, 2>(sD);
 
   if(thread0()){
-    print("mD_tile_to_smem_shape: "); print(mD_tile_to_smem_shape); print("\n");
+    print("gD: ");  print(gD); print("\n");
+    print("gD_tile_to_smem_shape: ");  print(gD_tile_to_smem_shape); print("\n");
+    print("gD_tile_to_smem_shape_per_warp: "); print(gD_tile_to_smem_shape_per_warp); print("\n");
+    print("sD2: ");  print(sD2); print("\n");
   }
 
-
-//   auto blkCoordD = make_coord(blockIdx.y, blockIdx.x);
-//   Tensor gD = local_tile(mD, tileShapeD, blkCoordD);
-
-//   auto tDgD = gD
-
-//   if (leaderWarp and lane_predicate) {
-//     copy(tmaStoreD, tDsD, tDgD);
-//   }
-//   // Wait for TMA store to complete.
-//   tma_store_wait<0>();
+  if (threadIdx.x==0 && blockIdx.y==0 && blockIdx.x==0) {
+    copy(tmaD, sD2, gD_tile_to_smem_shape_per_warp);
+  }
+  // Wait for TMA store to complete.
+  tma_store_wait<0>();
 }
 
 template <typename Element> void transpose_tma_raw(TransposeParams<Element> params) {
@@ -106,7 +105,7 @@ template <typename Element> void transpose_tma_raw(TransposeParams<Element> para
   // Tile tensors
   //
 
-  using bM = Int<64>;
+  using bM = Int<32>;
   using bN = Int<32>;
 
   auto block_shape = make_shape(bM{}, bN{});       // (bM, bN)
