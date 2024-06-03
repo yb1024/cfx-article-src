@@ -33,7 +33,7 @@ __global__ static void __launch_bounds__(256)
     transposeKernelTMARaw(Tiled_tensor_S tiled_tensor_S, Tile2thr_val_Sg tile2thr_val_Sg,
                        Thr_val2tile_Sg thr_val2tile_Sg, SmemLayoutD smemLayoutD,
                        Tile2thr_val_Ds tile2thr_val_Ds, Thr_val2tile_Ds thr_val2tile_Ds,
-                       TmaAtom tmaD, GmemLayoutD gmemLayoutD) {
+                       CUTE_GRID_CONSTANT TmaAtom const tmaD, GmemLayoutD gmemLayoutD) {
   using namespace cute;
   using Element = typename Tiled_tensor_S::value_type;
 
@@ -76,14 +76,14 @@ __global__ static void __launch_bounds__(256)
   auto gD_tile_to_smem_shape_per_warp = gD_tile_to_smem_shape(_, make_coord(blockIdx.y, blockIdx.x));
   auto sD2 = group_modes<0, 2>(sD);
 
-  if(thread0()){
-    print("gD: ");  print(gD); print("\n");
-    print("gD_tile_to_smem_shape: ");  print(gD_tile_to_smem_shape); print("\n");
-    print("gD_tile_to_smem_shape_per_warp: "); print(gD_tile_to_smem_shape_per_warp); print("\n");
-    print("sD2: ");  print(sD2); print("\n");
-  }
+  // if(thread0()){
+  //   print("gD: ");  print(gD); print("\n");
+  //   print("gD_tile_to_smem_shape: ");  print(gD_tile_to_smem_shape); print("\n");
+  //   print("gD_tile_to_smem_shape_per_warp: "); print(gD_tile_to_smem_shape_per_warp); print("\n");
+  //   print("sD2: ");  print(sD2); print("\n");
+  // }
 
-  if (threadIdx.x==0 && blockIdx.y==0 && blockIdx.x==0) {
+  if (leaderWarp and lane_predicate) {
     copy(tmaD, sD2, gD_tile_to_smem_shape_per_warp);
   }
   // Wait for TMA store to complete.
@@ -135,11 +135,6 @@ template <typename Element> void transpose_tma_raw(TransposeParams<Element> para
   auto cta_v_map = make_identity_layout(shape(tensor_D)).compose(tileShapeD);
   auto tmaD = detail::make_tma_copy_atom<Element>(SM90_TMA_STORE{}, tensor_D, smemLayoutD,
                                                        1, cta_v_map);
-
-  auto tileShapeM = make_shape(Int<4>{}, Int<8>{}, Int<32>{});
-  auto smemLayoutM = composition(smemLayoutD, make_layout(tileShapeM));
-  auto threadLayoutM = make_layout(make_shape(Int<1>{}, Int<8>{}, Int<32>{}),
-                                   make_stride(Int<1>{}, Int<1>{}, Int<8>{}));
 
   size_t smem_size =
       int(sizeof(SharedStorageTranspose<Element, decltype(smemLayoutD)>));
